@@ -249,6 +249,8 @@ test_transforms = U.get_test_transforms()
 - ### Generate model summary
 - ### Training
 
+Following are the training logs for 20 epochs for the model
+
 ```
 Adjusting learning rate of group 0 to 1.0000e-02.
 Epoch 1
@@ -352,3 +354,7 @@ Test set: Average loss: 0.0215, Accuracy: 9925/10000 (99.25%)
 
 Adjusting learning rate of group 0 to 1.0000e-03.
 ```
+
+### Loss and accuracy curve
+
+![Loss and Accuracy](acc_and_loss.png)
