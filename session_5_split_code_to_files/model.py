@@ -73,6 +73,8 @@ def run():
         U.test(model, device, test_dataloader, metrics)
         scheduler.step()
 
+    U.display_results(metrics)
+
 
 if __name__ == '__main__':
     run()
