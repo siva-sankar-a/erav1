@@ -240,6 +240,22 @@ To achieve this, the repository was updated with the latest code and pulled.
 !git pull
 ```
 
+Workflow
+
+```mermaid
+flowchart TD
+    A[Github] -->|create branch for session| B[Local dev]
+    B --> |debug and push to main| D{Is Colab running}
+    D -->|No| E[git clone]
+    D -->|Yes| F[git pull]
+    F -->|reload required modules| G[Run Colab]
+    E --> G
+    G --> H{ Changes required }
+    H --> |Yes| B
+    H --> |No| I[Get results!] 
+    I --> | Be happy! | J[Life is beautiful]
+```
+
 - ### Get device
 
 This section gets the current device to run the colab notebook.
@@ -260,20 +276,6 @@ Using the created `utils.py` module we load test and train transforms
 ```
 train_transforms = U.get_train_transforms()
 test_transforms = U.get_test_transforms()
-```
-
-```mermaid
-flowchart TD
-    A[Github] -->|create branch for session| B[Local dev]
-    B --> |debug and push to main| D{Is Colab running}
-    D -->|No| E[git clone]
-    D -->|Yes| F[git pull]
-    F -->|reload required modules| G[Run Colab]
-    E --> G
-    G --> H{ Changes required }
-    H --> |Yes| B
-    H --> |No| I[Get results!] 
-    I --> | Be happy! | J[Life is beautiful]
 ```
 
 - ### Get dataset
