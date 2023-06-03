@@ -344,7 +344,7 @@ This section generates the model summary in order to analyze the architecture an
 
 ### Model architecture
 ```mermaid
-graph LR
+graph TB
  A[Input Layer] --> |28 X 28 </br> 3 channels| B(Conv2d)
  B --> C[Relu]
 
