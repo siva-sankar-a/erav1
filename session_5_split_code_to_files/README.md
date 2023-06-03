@@ -221,6 +221,25 @@ import utils as U
 from model import Net
 ```
 
+The `utils.py` module had to undergo multiple changes while working with the same instance of Colab.
+To prevent restart of the instance and loss of data, this module had to be hot-reloaded into
+the instance multiple times. This was done with the help of `importlib`.
+
+```
+import importlib   # Import `importlib`
+import utils as U  # Load utilities module
+...
+U = importlib.reload(U) # Reload if required to get the modified version
+```
+
+To achieve this, the repository was updated with the latest code and pulled.
+
+```
+%cd /content/erav1
+...
+!git pull
+```
+
 - ### Get device
 
 This section gets the current device to run the colab notebook.
@@ -241,6 +260,20 @@ Using the created `utils.py` module we load test and train transforms
 ```
 train_transforms = U.get_train_transforms()
 test_transforms = U.get_test_transforms()
+```
+
+```mermaid
+flowchart TD
+    A[Github] -->|create branch for session| B[Local dev]
+    B --> |debug and push to main| D{Is Colab running}
+    D -->|No| E[git clone]
+    D -->|Yes| F[git pull]
+    F -->|reload required modules| G[Run Colab]
+    E --> G
+    G --> H{ Changes required }
+    H --> |Yes| B
+    H --> |No| I[Get results!] 
+    I --> | Be happy! | J[Life is beautiful]
 ```
 
 - ### Get dataset
