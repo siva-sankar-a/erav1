@@ -98,19 +98,19 @@
         ``` 
     
 - ### `model.py`
-    This file contains the model implemeted for the session. 
+    This file contains the model implemented for the session. 
 
     -  ### <ins> `Functions, classes and code snipppets:` </ins>
 
        > `class Net`
 
-        This class inherits form `nn.Module` and implements 
+        This class inherits from `nn.Module` and implements 
         the neural network architecture mentioned in summary
         ```
             device = ...
             model = Net().to('cpu')
         ```
-       The model architecture is similar to `AlexNet` but with just 4 covolutional blocks and 
+       The model architecture is similar to `AlexNet` but with just 4 convolutional blocks and 
        two fully connected layers in the end.
        
        ![Alexnet](alexnet.png)
@@ -139,7 +139,7 @@
 
     > `run`
 
-    This function colates all the required components from `utils.py` and `model.py`
+    This function collates all the required components from `utils.py` and `model.py`
     in order to verify if all components can work together in the local environment
 
     A similar structure is implemented in the Coogle colab notebook in order to train and test the model.
@@ -214,7 +214,7 @@ Since by default it is not loaded in the path we add it to load our modules by
 sys.path.append('/content/erav1/session_5_split_code_to_files')
 ```
 
-Modules that are creted are imported using the following statements
+Modules that are created are imported using the following statements
 
 ```
 import utils as U
@@ -240,7 +240,7 @@ To achieve this, the repository was updated with the latest code and pulled.
 !git pull
 ```
 
-Workflow
+## Workflow
 
 ```mermaid
 flowchart TD
@@ -279,13 +279,138 @@ test_transforms = U.get_test_transforms()
 ```
 
 - ### Get dataset
+Using the utility method, just loading the required MNIST dataset,
+Transforms are passed to this function while initializing
+
+```
+train_dataset = U.get_train_dataset(train_transforms)
+test_dataset = U.get_test_dataset(test_transforms)
+```
+
+> Logs for loading dataset
+```
+Downloading http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz
+Downloading http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz to ../data/MNIST/raw/train-images-idx3-ubyte.gz
+100%|██████████| 9912422/9912422 [00:00<00:00, 173461967.29it/s]Extracting ../data/MNIST/raw/train-images-idx3-ubyte.gz to ../data/MNIST/raw
+
+
+Downloading http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz
+Downloading http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz to ../data/MNIST/raw/train-labels-idx1-ubyte.gz
+100%|██████████| 28881/28881 [00:00<00:00, 135196086.86it/s]
+Extracting ../data/MNIST/raw/train-labels-idx1-ubyte.gz to ../data/MNIST/raw
+
+Downloading http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz
+Downloading http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz to ../data/MNIST/raw/t10k-images-idx3-ubyte.gz
+100%|██████████| 1648877/1648877 [00:00<00:00, 109231629.60it/s]Extracting ../data/MNIST/raw/t10k-images-idx3-ubyte.gz to ../data/MNIST/raw
+
+Downloading http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz
+Downloading http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz to ../data/MNIST/raw/t10k-labels-idx1-ubyte.gz
+
+100%|██████████| 4542/4542 [00:00<00:00, 8127358.69it/s]
+Extracting ../data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ../data/MNIST/raw
+```
+
 - ### Get train and test dataloader
+
+Since we have the dataset now, at this stage we intialize the dataloaders for `train` and `test`.
+This is for batch procesing.
+
+> This experiment uses a batch size of 512
+
+```
+batch_size = 512
+kwargs = {'batch_size': batch_size, 'shuffle': True, 'num_workers': 2, 'pin_memory': True}
+
+train_dataloader = U.get_train_dataloader(train_dataset, **kwargs)
+test_dataloader = U.get_test_dataloader(test_dataset, **kwargs)
+```
+
 - ### Display image grid
+
+This step helps us to visualize the set of images being generated from the data loader.
+We use the utility method mentioned below
+
+``` 
+U.show_image_grid(train_dataloader)
+```
+
+> Colab image grid output
+
+![Colab imagegrid](colab_imagegrid.png)
+
 - ### Generate model summary
+
+This section generates the model summary in order to analyze the architecture and the number of parameters
+
+### Model architecture
+```mermaid
+graph TB
+ A[Input Layer] --> |28 X 28 </br> 3 channels| B(Conv2d)
+ B --> C[Relu]
+
+ C --> |26 X 26 </br> 32 channels| D(Conv2d)
+ D --> E[Relu]
+
+
+ E --> |24 X 24 </br> 64 channels| F[Maxpool]
+
+ F --> |12 X 12 </br> 64 channels| G(Conv2d)
+ G --> H[Relu]
+
+ H --> |10 X 10 </br> 128 channels| I(Conv2d)
+ I --> J[Relu]
+
+ J --> |8 X 8 </br> 256 channels| K[Maxpool]
+
+ K --> |Flatten to <br> 1 X 4096| L(Fully connected)
+ L --> M[Relu] 
+
+ M --> |4096 X 50| N(Fully connected)
+ N --> O[Relu] 
+
+ O --> |50 X 10| P(Output Layer)
+
+ subgraph Conv Layers approx 100K parameters
+ subgraph block 1
+ B
+ C
+ end
+
+ subgraph block 2
+ D
+ E
+ end
+
+ subgraph block 3
+ G
+ H
+ end
+
+ subgraph block 4
+ I
+ J
+ end
+
+ K
+ F
+
+ end
+
+ subgraph Fully connected layers. 500K parameters. Wine bottle after a nice date dinner!
+ subgraph FC1
+ L
+ M
+ end
+
+  subgraph FC2
+ N
+ O
+ end
+ end
+```
 - ### Training
 
-Following are the training logs for 20 epochs for the model
-
+> Following are the training logs for 20 epochs for the model
 ```
 Adjusting learning rate of group 0 to 1.0000e-02.
 Epoch 1
@@ -393,3 +518,6 @@ Adjusting learning rate of group 0 to 1.0000e-03.
 ### Loss and accuracy curve
 
 ![Loss and Accuracy](acc_and_loss.png)
+
+### Conclusion
+MNIST dataset was sucessfully trained with the model architecture discussed upto 99% accuracy
