@@ -23,9 +23,9 @@ def get_train_transforms():
     '''
     # Train data transformations
     train_transforms = transforms.Compose([
-    transforms.RandomApply([transforms.CenterCrop(22), ], p=0.1),
-    transforms.Resize((28, 28)),
-    transforms.RandomRotation((-15., 15.), fill=0),
+    # transforms.RandomApply([transforms.CenterCrop(22), ], p=0.1),
+    # transforms.Resize((28, 28)),
+    # transforms.RandomRotation((-15., 15.), fill=0),
     transforms.ToTensor(),
     transforms.Normalize((0.1307,), (0.3081,)),
     ])
