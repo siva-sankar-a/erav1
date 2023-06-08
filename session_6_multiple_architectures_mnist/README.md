@@ -10,7 +10,7 @@
 
 ## <ins> Experiments </ins>
 
-### Benchmarking with last sessions model
+### Tweaking with last sessions model to meet parameter constraint
 
 Model Architecture
 
