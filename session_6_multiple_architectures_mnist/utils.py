@@ -23,13 +23,10 @@ def get_train_transforms():
     '''
     # Train data transformations
     train_transforms = transforms.Compose([
-    # transforms.RandomApply([transforms.CenterCrop(22), ], p=0.1),
-    # transforms.Resize((28, 28)),
-    # transforms.RandomRotation((-15., 15.), fill=0),
-    transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,)),
-    ])
-
+                                        transforms.RandomRotation((-7.0, 7.0), fill=(1,)),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize((0.1307,), (0.3081,)) 
+                                        ])
     return train_transforms
 
 def get_test_transforms():
@@ -41,9 +38,9 @@ def get_test_transforms():
     '''
     # Test data transformations
     test_transforms = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))
-    ])
+                                        transforms.ToTensor(),
+                                        transforms.Normalize((0.1307,), (0.3081,))
+                                        ])
 
     return test_transforms
 
