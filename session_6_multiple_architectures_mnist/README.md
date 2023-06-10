@@ -21,41 +21,61 @@ Screen shot of the final result
 - Compute the formula for all the required outputs. They are:
     - Hidden layer
     ```math
-    h_1 = w_1*i_1+w_2*i_2 \\
+    h_1 = w_1*i_1+w_2*i_2 
+    ```
+    ```math
     h_2 = w_3*i_1 + w_4 * i_2
     ```
     - Hidden layer activations
     ```math
-    a_{h_1} = σ(h_1) = \frac{1}{(1 + e^{-h_1})} \\
+    a_{h_1} = σ(h_1) = \frac{1}{(1 + e^{-h_1})}
+    ```
+    ```math
     a_{h_2} = σ(h_2) = \frac{1}{(1 + e^{-h_2})}
     ```
     - Output layer
     ```math
-    o_1 = w_5*a_{h_1} + w_6*a_{h_2}  \\
+    o_1 = w_5*a_{h_1} + w_6*a_{h_2}
+    ```
+    ```math
     o_2 = w_7*a_{h_1} + w_8*a_{h_2}
     ```
     - Output layer activations
     ```math
-    a_{o_1} = σ(o_1) = \frac{1}{(1 + e^{-o_1})} \\
+    a_{o_1} = σ(o_1) = \frac{1}{(1 + e^{-o_1})}
+    ```
+    ```math
     a_{o_2} = σ(o_2) = \frac{1}{(1 + e^{-o_2})}
     ```
     - Error
     ```math
-    E_1 = \frac{1}{2} * (t_1 - a_{o_1}) ^ 2 \\
-    E_2 = \frac{1}{2} * (t_2 - a_{o_2}) ^ 2 \\
+    E_1 = \frac{1}{2} * (t_1 - a_{o_1}) ^ 2
+    ```
+    ```math
+    E_2 = \frac{1}{2} * (t_2 - a_{o_2}) ^ 2
+    ```
+    ```math
     E = E_1 + E_2
     ```
     ![Step1](excel_step_1_io_formula.png)
 - Compute the gradient of a single weight in the output layer w.r.t the Error
+
     ![Step2](excel_step_2_gradient_of_output_wrt_weight_at_output_layer.png)
+
 - Repeat the previous step for all the output layer weights. After this step we will have all the gradients of output layer weights w.r.t the total error
+
     ![Step3](excel_step_3_compute_gradient_wrt_output_for_all_output_layer_weights.png)
 
 - Compute error gradients w.r.t hidden layer activations
+
     ![Step4](excel_step_4_compute_gradient_wrt_output_for_all_hidden_layer_activations.png)
+
 - Compute error gradients w.r.t input layer weights and substitute the result of last step to create the final formula in terms of inputs, target and activations
+
     ![Step5](excel_step_5_compute_output_gradient_wrt_all_input_layer_weights.png)
+
 - Final result
+
     ![Step6](excel_step_6_complete_input_layer_gradient_by_substituting_from_previous_steps.png)
 
 ## Part 2
