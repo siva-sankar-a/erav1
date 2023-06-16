@@ -3,6 +3,7 @@ from torchvision import datasets, transforms
 from torchsummary import summary
 import torch.nn.functional as F
 from tqdm import tqdm
+from sklearn.metrics import classification_report
 
 def get_device():
     '''
@@ -198,6 +199,9 @@ def test(model, device, test_loader, metrics):
     test_loss = 0
     correct = 0
 
+    pred = []
+    actual = []
+
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(test_loader):
             data, target = data.to(device), target.to(device)
@@ -206,6 +210,11 @@ def test(model, device, test_loader, metrics):
             test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
 
             correct += _get_correct_pred_count(output, target)
+
+            pred += output.argmax(dim=1).cpu().tolist()
+            actual += target
+    
+    print(classification_report(pred, actual))
 
 
     test_loss /= len(test_loader.dataset)
