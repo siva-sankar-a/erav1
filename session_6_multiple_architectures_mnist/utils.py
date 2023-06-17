@@ -212,7 +212,7 @@ def test(model, device, test_loader, metrics):
             correct += _get_correct_pred_count(output, target)
 
             pred += output.argmax(dim=1).cpu().tolist()
-            actual += target
+            actual += target.cpu().tolist()
     
     print(classification_report(pred, actual))
 
