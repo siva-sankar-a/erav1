@@ -34,10 +34,21 @@ def run():
     metrics = { 'train_acc': [], 'train_losses': [],
                 'test_acc': [], 'test_losses': [] }
 
+    labels = {0: 'airplane', 
+            1: 'automobile', 
+            2: 'bird', 
+            3: 'cat', 
+            4: 'deer', 
+            5: 'dog', 
+            6: 'frog', 
+            7: 'horse', 
+            8: 'ship', 
+            9: 'truck'}
+
     for epoch in range(1, num_epochs + 1):
         print(f'Epoch {epoch}')
         U.train(model, device, train_dataloader, optimizer, metrics)
-        U.test(model, device, test_dataloader, metrics)
+        U.test(model, device, test_dataloader, metrics, labels)
         scheduler.step()
 
     U.display_results(metrics)
