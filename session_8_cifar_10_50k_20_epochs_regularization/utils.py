@@ -186,7 +186,7 @@ def train(model, device, train_loader, optimizer, metrics):
 
     return metrics
 
-def test(model, device, test_loader, metrics):
+def test(model, device, test_loader, metrics, label_map=None):
 
     '''
     This function tests the provided `model` on the `test_loader`
@@ -218,8 +218,12 @@ def test(model, device, test_loader, metrics):
 
             pred += output.argmax(dim=1).cpu().tolist()
             actual += target.cpu().tolist()
-    
-    print(classification_report(pred, actual))
+
+    if label_map:
+        pred = [label_map[p] for p in pred]
+        actual = [label_map[a] for a in actual]
+
+    print(classification_report(actual, pred))
 
 
     test_loss /= len(test_loader.dataset)
