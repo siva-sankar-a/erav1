@@ -217,15 +217,18 @@ def test(model, device, test_loader, metrics, label_map=None, get_misclassified=
 
             correct += _get_correct_pred_count(output, target)
 
-            pred += output.argmax(dim=1).cpu().tolist()
-            actual += target.cpu().tolist()
+            pred_batch = output.argmax(dim=1).cpu().tolist()
+            actual_batch = target.cpu().tolist()
+
+            pred += pred_batch
+            actual += actual_batch
 
             if get_misclassified:
                 for i in range(data.shape[0]):
-                    if pred[i] != actual[i]:
+                    if pred_batch[i] != actual_batch[i]:
                         _misclassified_data = {
-                            'pred': pred,
-                            'actual': actual,
+                            'pred': pred_batch[i],
+                            'actual': actual_batch[i],
                             'data': data[i].detach().cpu().numpy()
                         }
                         misclassified_data.append(_misclassified_data)
