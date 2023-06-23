@@ -134,7 +134,7 @@ def show_summary(model, batch_size=-1, device='cpu'):
     ...
     >>> show_summary(model, -1, device.type)
     '''
-    summary(model, input_size=(1, 28, 28), batch_size=batch_size, device=device)
+    summary(model, input_size=(3, 32, 32), batch_size=batch_size, device=device)
 
 def _get_correct_pred_count(prediction, labels):
   return prediction.argmax(dim=1).eq(labels).sum().item()
@@ -186,7 +186,7 @@ def train(model, device, train_loader, optimizer, metrics):
 
     return metrics
 
-def test(model, device, test_loader, metrics, label_map=None):
+def test(model, device, test_loader, metrics, label_map=None, get_misclassified=True):
 
     '''
     This function tests the provided `model` on the `test_loader`
@@ -206,6 +206,7 @@ def test(model, device, test_loader, metrics, label_map=None):
 
     pred = []
     actual = []
+    misclassified_data = []
 
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(test_loader):
@@ -219,6 +220,16 @@ def test(model, device, test_loader, metrics, label_map=None):
             pred += output.argmax(dim=1).cpu().tolist()
             actual += target.cpu().tolist()
 
+            if get_misclassified:
+                for i in range(data.shape[0]):
+                    if pred[i] != actual[i]:
+                        _misclassified_data = {
+                            'pred': pred,
+                            'actual': actual,
+                            'data': data[i].detach().cpu().numpy()
+                        }
+                        misclassified_data.append(_misclassified_data)
+
     if label_map:
         pred = [label_map[p] for p in pred]
         actual = [label_map[a] for a in actual]
@@ -230,6 +241,7 @@ def test(model, device, test_loader, metrics, label_map=None):
 
     metrics['test_acc'].append(100. * correct / len(test_loader.dataset))
     metrics['test_losses'].append(test_loss)
+    metrics['misclassified_data'] = misclassified_data
 
     print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
