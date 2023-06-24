@@ -1,16 +1,18 @@
-# Session 7
+# Session 8
 
 ## <ins>Problem</ins>
 
-- Attain 99.4% validation accuracy on MNIST dataset with
-    - Less than 8k parameters
-    - Less than 15 epochs
+- Attain 70% validation accuracy on CIFAR10 dataset with
+    - Less than 50k parameters
+    - Less than 20 epochs
 - Collect results and prepare documentation for results.
 
 ### Navigating the source code
 The code structure has no modifications from the last sessions and further details of the structure is available [here](../session_5_split_code_to_files/README.md)
 
-
+### Added bit more modularization with
+- `run.py` - To be used for local testing
+- `datasets.py` - Wrapping pytorch dataset - RIght now only handles CIFAR10 dataset
 
 ### Key code snippets
 > [Model Architecture](model.py)
@@ -28,30 +30,32 @@ class Net(nn.Module):
     #This defines the structure of the NN.
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = self.conv3x3_bn_dropout(1, 8, padding=1)
-        self.conv2 = self.conv3x3_bn_dropout(8, 8)
+        self.conv1 = self.conv3x3_bn_dropout(3, 8, padding=1)
+        self.conv2 = self.conv3x3_bn_dropout(8, 8, padding=1)
+        self.conv3 = self.conv1x1(8, 8, padding=1)
 
-        # self.squeeze1 = self.conv1x1(4, 1)
+        self.pool1 = self.conv3x3_bn_dropout(8, 8, stride=2)
+        self.downsample1 = self.conv3x3_bn_dropout(3, 8, padding=1, stride=2)
 
-        self.conv3 = self.conv3x3_bn_dropout(8, 8, padding=1)
-        self.conv4 = self.conv3x3_bn_dropout(8, 8)
-        self.conv5 = self.conv3x3_bn_dropout(8, 8)
-        self.conv6 = self.conv3x3_bn_dropout(8, 8, stride=2)
+        self.conv4 = self.conv3x3_bn_dropout(8, 8, padding=1)
+        self.conv5 = self.conv3x3_bn_dropout(8, 8, padding=1)
+        self.conv6 = self.conv3x3_bn_dropout(8, 8, padding=1)
+        self.conv7 = self.conv1x1(8, 8, padding=1)
 
-        # self.squeeze2 = self.conv1x1(8, 1)
+        self.pool2 = self.conv3x3_bn_dropout(8, 8, stride=2)
+        self.downsample2 = self.conv3x3_bn_dropout(8, 8, padding=1, stride=2)
 
-        self.conv7 = self.conv3x3_bn_dropout(8, 8, padding=1)
-        self.conv8 = self.conv3x3_bn_dropout(8, 8)
-        self.conv9 = self.conv3x3_bn_dropout(8, 16)
-        self.conv10 = self.conv3x3_bn_dropout(16, 16)
+        self.conv8 = self.conv3x3_bn_dropout(8, 8, padding=1)
+        self.conv9 = self.conv3x3_bn_dropout(8, 8, padding=1)
+        self.conv10 = self.conv3x3_bn_dropout(8, 8, padding=1)
 
-        self.gap = nn.AvgPool2d(4)
+        self.gap = nn.AvgPool2d(8)
         self.mixer = nn.Sequential(
-            self.conv1x1(16, 10),
+            self.conv1x1(8, 10),
         )
 
 
-    def conv3x3_bn_dropout(self, in_channels, out_channels, kernel_size=3, stride=1, padding=0, bias=False, dropout=0.1):
+    def conv3x3_bn_dropout(self, in_channels, out_channels, kernel_size=3, stride=1, padding=0, bias=False, dropout=0.0):
           if dropout:
             return nn.Sequential(
                 self.conv3x3(in_channels, out_channels, kernel_size, stride, padding, bias),
@@ -84,544 +88,634 @@ class Net(nn.Module):
 
 
     def forward(self, x):
+
+        # Block 1
+        i1 = x
+
         x = self.conv1(x)
         x = self.conv2(x)
-        # x = self.squeeze1(x)
-
         x = self.conv3(x)
+        # pooling
+        x = self.pool1(x)
+
+        # residual connection
+        i1 = self.downsample1(i1)
+        x = x + i1
+
+        # Block 2
+        i2 = x
         x = self.conv4(x)
         x = self.conv5(x)
         x = self.conv6(x)
-        # x = self.squeeze2(x)
-
         x = self.conv7(x)
+        # pooling
+        x = self.pool2(x)
+
+        # residual connection
+        i2 = self.downsample2(i2)
+        x = x + i2
+
+        # Block 3
+        i3 = x
         x = self.conv8(x)
         x = self.conv9(x)
         x = self.conv10(x)
+        # residual connection
+        x = x + i3
 
         x = self.gap(x)
         x = self.mixer(x)
         x = x.view(-1, 10)
+
         return F.log_softmax(x, dim=1)
 ```
 
 ### Model summary
 
-The final model has a total of 7,912 parameters. 
-- This is well within the parameter limit of 20k parameters. 
-- The parameters are uniformly distributed across multiple layers
-- Stride used to reduce channel size rather than max pooling
-- `conv1`, `conv3` and `conv7` has padding
+The final model has a total of 47,304 parameters. 
+- This is well within the parameter limit of 50k parameters. 
+- Has 3 residual connections
 
 > Model summary
 ```
 ----------------------------------------------------------------
         Layer (type)               Output Shape         Param #
 ================================================================
-            Conv2d-1          [1024, 8, 28, 28]              72
-              ReLU-2          [1024, 8, 28, 28]               0
-       BatchNorm2d-3          [1024, 8, 28, 28]              16
-           Dropout-4          [1024, 8, 28, 28]               0
-            Conv2d-5          [1024, 8, 26, 26]             576
-              ReLU-6          [1024, 8, 26, 26]               0
-       BatchNorm2d-7          [1024, 8, 26, 26]              16
-           Dropout-8          [1024, 8, 26, 26]               0
-            Conv2d-9          [1024, 8, 26, 26]             576
-             ReLU-10          [1024, 8, 26, 26]               0
-      BatchNorm2d-11          [1024, 8, 26, 26]              16
-          Dropout-12          [1024, 8, 26, 26]               0
-           Conv2d-13          [1024, 8, 24, 24]             576
-             ReLU-14          [1024, 8, 24, 24]               0
-      BatchNorm2d-15          [1024, 8, 24, 24]              16
-          Dropout-16          [1024, 8, 24, 24]               0
-           Conv2d-17          [1024, 8, 22, 22]             576
-             ReLU-18          [1024, 8, 22, 22]               0
-      BatchNorm2d-19          [1024, 8, 22, 22]              16
-          Dropout-20          [1024, 8, 22, 22]               0
-           Conv2d-21          [1024, 8, 10, 10]             576
-             ReLU-22          [1024, 8, 10, 10]               0
-      BatchNorm2d-23          [1024, 8, 10, 10]              16
-          Dropout-24          [1024, 8, 10, 10]               0
-           Conv2d-25          [1024, 8, 10, 10]             576
-             ReLU-26          [1024, 8, 10, 10]               0
-      BatchNorm2d-27          [1024, 8, 10, 10]              16
-          Dropout-28          [1024, 8, 10, 10]               0
-           Conv2d-29            [1024, 8, 8, 8]             576
-             ReLU-30            [1024, 8, 8, 8]               0
-      BatchNorm2d-31            [1024, 8, 8, 8]              16
-          Dropout-32            [1024, 8, 8, 8]               0
-           Conv2d-33           [1024, 16, 6, 6]           1,152
-             ReLU-34           [1024, 16, 6, 6]               0
-      BatchNorm2d-35           [1024, 16, 6, 6]              32
-          Dropout-36           [1024, 16, 6, 6]               0
-           Conv2d-37           [1024, 16, 4, 4]           2,304
-             ReLU-38           [1024, 16, 4, 4]               0
-      BatchNorm2d-39           [1024, 16, 4, 4]              32
-          Dropout-40           [1024, 16, 4, 4]               0
-        AvgPool2d-41           [1024, 16, 1, 1]               0
-           Conv2d-42           [1024, 10, 1, 1]             160
+            Conv2d-1           [128, 8, 32, 32]             216
+              ReLU-2           [128, 8, 32, 32]               0
+         GroupNorm-3           [128, 8, 32, 32]              16
+           Dropout-4           [128, 8, 32, 32]               0
+            Conv2d-5           [128, 8, 32, 32]             576
+              ReLU-6           [128, 8, 32, 32]               0
+         GroupNorm-7           [128, 8, 32, 32]              16
+           Dropout-8           [128, 8, 32, 32]               0
+            Conv2d-9           [128, 8, 34, 34]              64
+           Conv2d-10          [128, 16, 16, 16]           1,152
+             ReLU-11          [128, 16, 16, 16]               0
+        GroupNorm-12          [128, 16, 16, 16]              32
+          Dropout-13          [128, 16, 16, 16]               0
+           Conv2d-14          [128, 16, 16, 16]             432
+             ReLU-15          [128, 16, 16, 16]               0
+        GroupNorm-16          [128, 16, 16, 16]              32
+          Dropout-17          [128, 16, 16, 16]               0
+           Conv2d-18          [128, 16, 16, 16]           2,304
+             ReLU-19          [128, 16, 16, 16]               0
+        GroupNorm-20          [128, 16, 16, 16]              32
+          Dropout-21          [128, 16, 16, 16]               0
+           Conv2d-22          [128, 16, 16, 16]           2,304
+             ReLU-23          [128, 16, 16, 16]               0
+        GroupNorm-24          [128, 16, 16, 16]              32
+          Dropout-25          [128, 16, 16, 16]               0
+           Conv2d-26          [128, 16, 16, 16]           2,304
+             ReLU-27          [128, 16, 16, 16]               0
+        GroupNorm-28          [128, 16, 16, 16]              32
+          Dropout-29          [128, 16, 16, 16]               0
+           Conv2d-30          [128, 16, 18, 18]             256
+           Conv2d-31            [128, 32, 8, 8]           4,608
+             ReLU-32            [128, 32, 8, 8]               0
+        GroupNorm-33            [128, 32, 8, 8]              64
+          Dropout-34            [128, 32, 8, 8]               0
+           Conv2d-35            [128, 32, 8, 8]           4,608
+             ReLU-36            [128, 32, 8, 8]               0
+        GroupNorm-37            [128, 32, 8, 8]              64
+          Dropout-38            [128, 32, 8, 8]               0
+           Conv2d-39            [128, 32, 8, 8]           9,216
+             ReLU-40            [128, 32, 8, 8]               0
+        GroupNorm-41            [128, 32, 8, 8]              64
+          Dropout-42            [128, 32, 8, 8]               0
+           Conv2d-43            [128, 32, 8, 8]           9,216
+             ReLU-44            [128, 32, 8, 8]               0
+        GroupNorm-45            [128, 32, 8, 8]              64
+          Dropout-46            [128, 32, 8, 8]               0
+           Conv2d-47            [128, 32, 8, 8]           9,216
+             ReLU-48            [128, 32, 8, 8]               0
+        GroupNorm-49            [128, 32, 8, 8]              64
+          Dropout-50            [128, 32, 8, 8]               0
+        AvgPool2d-51            [128, 32, 1, 1]               0
+           Conv2d-52            [128, 10, 1, 1]             320
 ================================================================
-Total params: 7,912
-Trainable params: 7,912
+Total params: 47,304
+Trainable params: 47,304
 Non-trainable params: 0
 ----------------------------------------------------------------
-Input size (MB): 3.06
-Forward/backward pass size (MB): 891.20
-Params size (MB): 0.03
-Estimated Total Size (MB): 894.30
+Input size (MB): 1.50
+Forward/backward pass size (MB): 198.13
+Params size (MB): 0.18
+Estimated Total Size (MB): 199.82
 ----------------------------------------------------------------
 ```
-> Training logs
+
+### Model architecture
+![Model architecture](net.svg)
+
+### Changes in network for Group and Layer normalization
+
+
+#### Group normalization
+
 ```
-Adjusting learning rate of group 0 to 1.0000e-01.
-Epoch 1
-Train: Loss=0.0343 Batch_id=468 Accuracy=92.34: 100%|██████████| 469/469 [00:25<00:00, 18.43it/s]
-              precision    recall  f1-score   support
-
-           0       0.99      0.99      0.99       978
-           1       0.99      0.99      0.99      1133
-           2       0.98      0.98      0.98      1029
-           3       0.98      0.99      0.98       999
-           4       0.98      0.99      0.98       977
-           5       0.99      0.98      0.98       903
-           6       0.99      0.98      0.98       970
-           7       0.98      0.97      0.98      1039
-           8       0.98      0.99      0.99       962
-           9       0.98      0.98      0.98      1010
-
-    accuracy                           0.98     10000
-   macro avg       0.98      0.98      0.98     10000
-weighted avg       0.98      0.98      0.98     10000
-
-Test set: Average loss: 0.0498, Accuracy: 9839/10000 (98.39%)
-
-Adjusting learning rate of group 0 to 1.0000e-01.
-Epoch 2
-Train: Loss=0.0337 Batch_id=468 Accuracy=97.46: 100%|██████████| 469/469 [00:24<00:00, 18.95it/s]
-              precision    recall  f1-score   support
-
-           0       0.99      0.99      0.99       980
-           1       1.00      1.00      1.00      1135
-           2       1.00      0.98      0.99      1043
-           3       0.99      0.99      0.99      1010
-           4       0.95      1.00      0.98       937
-           5       0.99      0.98      0.99       899
-           6       0.99      0.99      0.99       950
-           7       0.99      0.99      0.99      1030
-           8       0.99      0.99      0.99       970
-           9       0.99      0.96      0.97      1046
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0383, Accuracy: 9877/10000 (98.77%)
-
-Adjusting learning rate of group 0 to 1.0000e-01.
-Epoch 3
-Train: Loss=0.0485 Batch_id=468 Accuracy=97.86: 100%|██████████| 469/469 [00:24<00:00, 18.78it/s]
-              precision    recall  f1-score   support
-
-           0       0.99      0.99      0.99       979
-           1       0.99      0.99      0.99      1134
-           2       0.99      0.99      0.99      1030
-           3       0.99      1.00      0.99      1006
-           4       0.99      0.99      0.99       984
-           5       0.99      0.99      0.99       893
-           6       0.99      0.98      0.99       969
-           7       0.98      0.99      0.99      1017
-           8       0.99      0.99      0.99       967
-           9       0.99      0.98      0.98      1021
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0331, Accuracy: 9897/10000 (98.97%)
-
-Adjusting learning rate of group 0 to 1.0000e-01.
-Epoch 4
-Train: Loss=0.0202 Batch_id=468 Accuracy=98.13: 100%|██████████| 469/469 [00:24<00:00, 19.04it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      0.99      0.99       986
-           1       0.99      0.99      0.99      1133
-           2       0.99      0.99      0.99      1033
-           3       0.99      0.99      0.99      1007
-           4       0.99      0.99      0.99       989
-           5       0.99      0.98      0.99       897
-           6       0.99      0.98      0.99       965
-           7       0.98      1.00      0.99      1014
-           8       0.99      0.99      0.99       978
-           9       0.98      0.99      0.98       998
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0349, Accuracy: 9892/10000 (98.92%)
-
-Adjusting learning rate of group 0 to 1.0000e-01.
-Epoch 5
-Train: Loss=0.0343 Batch_id=468 Accuracy=98.16: 100%|██████████| 469/469 [00:24<00:00, 19.06it/s]
-              precision    recall  f1-score   support
-
-           0       0.99      1.00      1.00       978
-           1       1.00      0.99      1.00      1146
-           2       0.99      0.98      0.99      1043
-           3       0.99      1.00      0.99      1003
-           4       0.99      1.00      0.99       973
-           5       0.99      0.99      0.99       891
-           6       1.00      0.99      0.99       970
-           7       0.98      0.99      0.99      1013
-           8       0.99      0.99      0.99       977
-           9       0.99      0.99      0.99      1006
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0291, Accuracy: 9908/10000 (99.08%)
-
-Adjusting learning rate of group 0 to 1.0000e-01.
-Epoch 6
-Train: Loss=0.0431 Batch_id=468 Accuracy=98.36: 100%|██████████| 469/469 [00:24<00:00, 18.84it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      0.98      0.99       996
-           1       1.00      0.99      0.99      1143
-           2       1.00      0.99      0.99      1040
-           3       0.99      0.99      0.99      1007
-           4       0.99      1.00      0.99       975
-           5       0.99      0.99      0.99       892
-           6       0.98      1.00      0.99       944
-           7       0.98      0.99      0.99      1018
-           8       0.99      1.00      0.99       967
-           9       0.99      0.98      0.99      1018
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0285, Accuracy: 9905/10000 (99.05%)
-
-Adjusting learning rate of group 0 to 1.0000e-02.
-Epoch 7
-Train: Loss=0.0356 Batch_id=468 Accuracy=98.72: 100%|██████████| 469/469 [00:25<00:00, 18.18it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      0.99      1.00       982
-           1       1.00      0.99      1.00      1141
-           2       1.00      0.99      0.99      1037
-           3       0.99      0.99      0.99      1008
-           4       0.99      1.00      0.99       974
-           5       0.99      0.99      0.99       894
-           6       0.99      1.00      1.00       957
-           7       0.99      0.99      0.99      1023
-           8       0.99      1.00      0.99       968
-           9       0.99      0.99      0.99      1016
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0212, Accuracy: 9934/10000 (99.34%)
-
-Adjusting learning rate of group 0 to 1.0000e-02.
-Epoch 8
-Train: Loss=0.0625 Batch_id=468 Accuracy=98.80: 100%|██████████| 469/469 [00:23<00:00, 19.60it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       981
-           1       1.00      0.99      1.00      1140
-           2       1.00      0.99      1.00      1034
-           3       0.99      0.99      0.99      1009
-           4       0.99      1.00      0.99       980
-           5       0.99      0.99      0.99       894
-           6       0.99      1.00      0.99       956
-           7       0.99      0.99      0.99      1028
-           8       0.99      1.00      0.99       968
-           9       0.99      0.99      0.99      1010
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0198, Accuracy: 9940/10000 (99.40%)
-
-Adjusting learning rate of group 0 to 1.0000e-02.
-Epoch 9
-Train: Loss=0.0180 Batch_id=468 Accuracy=98.85: 100%|██████████| 469/469 [00:23<00:00, 19.55it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      0.99      1.00       983
-           1       1.00      0.99      1.00      1141
-           2       1.00      0.99      0.99      1033
-           3       0.99      0.99      0.99      1010
-           4       1.00      0.99      1.00       983
-           5       0.99      0.99      0.99       894
-           6       1.00      1.00      1.00       957
-           7       0.99      0.99      0.99      1025
-           8       0.99      1.00      0.99       971
-           9       0.99      0.99      0.99      1003
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0197, Accuracy: 9942/10000 (99.42%)
-
-Adjusting learning rate of group 0 to 1.0000e-02.
-Epoch 10
-Train: Loss=0.0307 Batch_id=468 Accuracy=98.85: 100%|██████████| 469/469 [00:24<00:00, 19.18it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       981
-           1       1.00      0.99      0.99      1143
-           2       1.00      1.00      1.00      1032
-           3       0.99      1.00      0.99      1008
-           4       0.99      1.00      1.00       980
-           5       0.99      0.99      0.99       894
-           6       0.99      1.00      0.99       954
-           7       0.99      0.99      0.99      1029
-           8       0.99      1.00      0.99       969
-           9       0.99      0.99      0.99      1010
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0197, Accuracy: 9942/10000 (99.42%)
-
-Adjusting learning rate of group 0 to 1.0000e-02.
-Epoch 11
-Train: Loss=0.0369 Batch_id=468 Accuracy=98.88: 100%|██████████| 469/469 [00:24<00:00, 18.94it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       980
-           1       1.00      0.99      1.00      1141
-           2       0.99      1.00      0.99      1028
-           3       0.99      0.99      0.99      1009
-           4       0.99      1.00      1.00       979
-           5       0.99      0.99      0.99       893
-           6       1.00      0.99      1.00       959
-           7       0.99      0.99      0.99      1031
-           8       0.99      1.00      0.99       970
-           9       0.99      0.99      0.99      1010
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0192, Accuracy: 9940/10000 (99.40%)
-
-Adjusting learning rate of group 0 to 1.0000e-02.
-Epoch 12
-Train: Loss=0.0223 Batch_id=468 Accuracy=98.87: 100%|██████████| 469/469 [00:25<00:00, 18.75it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       980
-           1       1.00      0.99      1.00      1142
-           2       0.99      1.00      0.99      1031
-           3       1.00      0.99      0.99      1011
-           4       1.00      1.00      1.00       982
-           5       0.99      0.99      0.99       892
-           6       1.00      0.99      1.00       959
-           7       0.99      0.99      0.99      1025
-           8       0.99      1.00      1.00       967
-           9       0.99      0.99      0.99      1011
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0192, Accuracy: 9944/10000 (99.44%)
-
-Adjusting learning rate of group 0 to 1.0000e-03.
-Epoch 13
-Train: Loss=0.0242 Batch_id=468 Accuracy=98.93: 100%|██████████| 469/469 [00:24<00:00, 19.05it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       980
-           1       1.00      0.99      0.99      1143
-           2       0.99      1.00      0.99      1030
-           3       1.00      0.99      0.99      1011
-           4       0.99      1.00      1.00       979
-           5       0.99      0.99      0.99       894
-           6       0.99      1.00      1.00       957
-           7       0.99      0.99      0.99      1026
-           8       0.99      1.00      0.99       969
-           9       0.99      0.99      0.99      1011
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0189, Accuracy: 9942/10000 (99.42%)
-
-Adjusting learning rate of group 0 to 1.0000e-03.
-Epoch 14
-Train: Loss=0.0426 Batch_id=468 Accuracy=98.96: 100%|██████████| 469/469 [00:24<00:00, 18.94it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       980
-           1       1.00      0.99      1.00      1141
-           2       0.99      1.00      0.99      1031
-           3       0.99      0.99      0.99      1009
-           4       0.99      1.00      1.00       980
-           5       0.99      0.99      0.99       893
-           6       1.00      1.00      1.00       958
-           7       0.99      0.99      0.99      1028
-           8       0.99      1.00      0.99       968
-           9       0.99      0.99      0.99      1012
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0188, Accuracy: 9943/10000 (99.43%)
-
-Adjusting learning rate of group 0 to 1.0000e-03.
-Epoch 15
-Train: Loss=0.0674 Batch_id=468 Accuracy=98.89: 100%|██████████| 469/469 [00:24<00:00, 18.84it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       980
-           1       1.00      0.99      1.00      1142
-           2       0.99      1.00      0.99      1031
-           3       0.99      0.99      0.99      1009
-           4       1.00      1.00      1.00       981
-           5       0.99      0.99      0.99       893
-           6       1.00      1.00      1.00       958
-           7       0.99      0.99      0.99      1027
-           8       0.99      1.00      1.00       967
-           9       0.99      0.99      0.99      1012
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0188, Accuracy: 9944/10000 (99.44%)
-
-Adjusting learning rate of group 0 to 1.0000e-03.
-Epoch 16
-Train: Loss=0.0074 Batch_id=468 Accuracy=98.94: 100%|██████████| 469/469 [00:26<00:00, 18.00it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       980
-           1       1.00      0.99      1.00      1142
-           2       0.99      1.00      0.99      1031
-           3       0.99      0.99      0.99      1009
-           4       0.99      1.00      1.00       980
-           5       0.99      0.99      0.99       893
-           6       1.00      1.00      1.00       958
-           7       0.99      0.99      0.99      1027
-           8       0.99      1.00      0.99       969
-           9       0.99      0.99      0.99      1011
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0188, Accuracy: 9942/10000 (99.42%)
-
-Adjusting learning rate of group 0 to 1.0000e-03.
-Epoch 17
-Train: Loss=0.0352 Batch_id=468 Accuracy=98.92: 100%|██████████| 469/469 [00:24<00:00, 18.93it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       980
-           1       1.00      0.99      1.00      1142
-           2       1.00      1.00      1.00      1032
-           3       1.00      0.99      0.99      1011
-           4       0.99      1.00      1.00       980
-           5       0.99      0.99      0.99       894
-           6       1.00      1.00      1.00       958
-           7       0.99      0.99      0.99      1024
-           8       0.99      1.00      0.99       971
-           9       0.99      0.99      0.99      1008
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0189, Accuracy: 9944/10000 (99.44%)
-
-Adjusting learning rate of group 0 to 1.0000e-03.
-Epoch 18
-Train: Loss=0.0029 Batch_id=468 Accuracy=98.92: 100%|██████████| 469/469 [00:24<00:00, 18.84it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       981
-           1       1.00      0.99      1.00      1142
-           2       1.00      1.00      1.00      1032
-           3       0.99      0.99      0.99      1009
-           4       1.00      0.99      1.00       983
-           5       0.99      0.99      0.99       892
-           6       1.00      0.99      1.00       959
-           7       0.99      0.99      0.99      1026
-           8       0.99      1.00      0.99       968
-           9       0.99      0.99      0.99      1008
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0189, Accuracy: 9940/10000 (99.40%)
-
-Adjusting learning rate of group 0 to 1.0000e-04.
-Epoch 19
-Train: Loss=0.0036 Batch_id=468 Accuracy=98.96: 100%|██████████| 469/469 [00:24<00:00, 19.15it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       981
-           1       1.00      0.99      1.00      1142
-           2       1.00      1.00      1.00      1032
-           3       0.99      0.99      0.99      1009
-           4       0.99      1.00      1.00       979
-           5       0.99      0.99      0.99       893
-           6       1.00      0.99      1.00       959
-           7       0.99      0.99      0.99      1026
-           8       0.99      1.00      0.99       971
-           9       0.99      0.99      0.99      1008
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0189, Accuracy: 9941/10000 (99.41%)
-
-Adjusting learning rate of group 0 to 1.0000e-04.
-Epoch 20
-Train: Loss=0.0022 Batch_id=468 Accuracy=98.95: 100%|██████████| 469/469 [00:24<00:00, 19.47it/s]
-              precision    recall  f1-score   support
-
-           0       1.00      1.00      1.00       980
-           1       1.00      0.99      1.00      1141
-           2       0.99      1.00      0.99      1030
-           3       0.99      0.99      0.99      1010
-           4       0.99      1.00      1.00       979
-           5       0.99      0.99      0.99       893
-           6       1.00      1.00      1.00       958
-           7       0.99      0.99      0.99      1029
-           8       0.99      1.00      0.99       968
-           9       0.99      0.99      0.99      1012
-
-    accuracy                           0.99     10000
-   macro avg       0.99      0.99      0.99     10000
-weighted avg       0.99      0.99      0.99     10000
-
-Test set: Average loss: 0.0190, Accuracy: 9945/10000 (99.45%)
-
-Adjusting learning rate of group 0 to 1.0000e-04.
+def conv3x3_bn_dropout(self, in_channels, out_channels, kernel_size=3, stride=1, padding=0, bias=False, dropout=0.1):
+        if dropout:
+        return nn.Sequential(
+            self.conv3x3(in_channels, out_channels, kernel_size, stride, padding, bias),
+            nn.ReLU(),
+            nn.GroupNorm(4, out_channels),
+            nn.Dropout(dropout),
+            )
+        else:
+        return nn.Sequential(
+            self.conv3x3(in_channels, out_channels, kernel_size, stride, padding, bias),
+            nn.ReLU(),
+            nn.GroupNorm(4, out_channels),
+            )
 ```
+
+#### Layer normalization
+
+```
+def conv3x3_bn_dropout(self, in_channels, out_channels, kernel_size=3, stride=1, padding=0, bias=False, dropout=0.0):
+        if dropout:
+        return nn.Sequential(
+            self.conv3x3(in_channels, out_channels, kernel_size, stride, padding, bias),
+            nn.ReLU(),
+            nn.GroupNorm(1, out_channels),
+            nn.Dropout(dropout),
+            )
+        else:
+        return nn.Sequential(
+            self.conv3x3(in_channels, out_channels, kernel_size, stride, padding, bias),
+            nn.ReLU(),
+                nn.GroupNorm(1, out_channels),
+            )
+```
+
+> Miscalssified images for
+
+- Batch normalization
+![Batch normalization failed](failed_bn.png)
+
+- Group normalization
+![Batch normalization failed](failed_gn.png)
+
+- Layer normalization
+![Batch normalization failed](failed_ln.png)
+
 
 > Plots
 
-Loss curve
-![Loss plot](loss.png)
+Loss curve for batch normalization
+![Loss batch norm plot](loss_bn.png)
 
-Accuracy curve
-![Accuracy plot](acc.png)
+Accuracy curve for batch normalization
+![Accuracy batch norm plot](acc_bn.png)
+
+
+> Training logs batch normalization
+
+```
+Adjusting learning rate of group 0 to 1.0000e-01.
+Epoch 1
+Train: Loss=1.4900 Batch_id=390 Accuracy=39.64: 100%|██████████| 391/391 [00:27<00:00, 14.44it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.49      0.63      0.55      1000
+  automobile       0.71      0.60      0.65      1000
+        bird       0.29      0.54      0.38      1000
+         cat       0.37      0.21      0.26      1000
+        deer       0.34      0.33      0.33      1000
+         dog       0.45      0.31      0.37      1000
+        frog       0.62      0.50      0.55      1000
+       horse       0.54      0.62      0.57      1000
+        ship       0.63      0.52      0.57      1000
+       truck       0.62      0.62      0.62      1000
+
+    accuracy                           0.49     10000
+   macro avg       0.51      0.49      0.49     10000
+weighted avg       0.51      0.49      0.49     10000
+
+Test set: Average loss: 1.3515, Accuracy: 4886/10000 (48.86%)
+
+Adjusting learning rate of group 0 to 1.0000e-01.
+Epoch 2
+Train: Loss=1.2786 Batch_id=390 Accuracy=50.45: 100%|██████████| 391/391 [00:18<00:00, 21.35it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.51      0.73      0.60      1000
+  automobile       0.72      0.79      0.76      1000
+        bird       0.40      0.56      0.46      1000
+         cat       0.37      0.31      0.34      1000
+        deer       0.61      0.24      0.34      1000
+         dog       0.37      0.57      0.45      1000
+        frog       0.73      0.60      0.66      1000
+       horse       0.74      0.55      0.63      1000
+        ship       0.68      0.62      0.65      1000
+       truck       0.75      0.64      0.69      1000
+
+    accuracy                           0.56     10000
+   macro avg       0.59      0.56      0.56     10000
+weighted avg       0.59      0.56      0.56     10000
+
+Test set: Average loss: 1.2058, Accuracy: 5602/10000 (56.02%)
+
+Adjusting learning rate of group 0 to 1.0000e-01.
+Epoch 3
+Train: Loss=1.2121 Batch_id=390 Accuracy=55.58: 100%|██████████| 391/391 [00:18<00:00, 20.97it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.66      0.68      0.67      1000
+  automobile       0.75      0.88      0.81      1000
+        bird       0.55      0.44      0.49      1000
+         cat       0.40      0.35      0.38      1000
+        deer       0.59      0.51      0.55      1000
+         dog       0.45      0.62      0.52      1000
+        frog       0.70      0.66      0.68      1000
+       horse       0.65      0.72      0.69      1000
+        ship       0.76      0.76      0.76      1000
+       truck       0.83      0.71      0.76      1000
+
+    accuracy                           0.63     10000
+   macro avg       0.64      0.63      0.63     10000
+weighted avg       0.64      0.63      0.63     10000
+
+Test set: Average loss: 1.0332, Accuracy: 6332/10000 (63.32%)
+
+Adjusting learning rate of group 0 to 1.0000e-01.
+Epoch 4
+Train: Loss=1.2079 Batch_id=390 Accuracy=58.58: 100%|██████████| 391/391 [00:17<00:00, 22.09it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.67      0.72      0.69      1000
+  automobile       0.83      0.79      0.81      1000
+        bird       0.61      0.40      0.48      1000
+         cat       0.47      0.34      0.39      1000
+        deer       0.56      0.69      0.62      1000
+         dog       0.46      0.73      0.57      1000
+        frog       0.75      0.67      0.71      1000
+       horse       0.76      0.65      0.70      1000
+        ship       0.79      0.78      0.79      1000
+       truck       0.77      0.81      0.79      1000
+
+    accuracy                           0.66     10000
+   macro avg       0.67      0.66      0.65     10000
+weighted avg       0.67      0.66      0.65     10000
+
+Test set: Average loss: 0.9601, Accuracy: 6579/10000 (65.79%)
+
+Adjusting learning rate of group 0 to 1.0000e-01.
+Epoch 5
+Train: Loss=1.0620 Batch_id=390 Accuracy=60.84: 100%|██████████| 391/391 [00:19<00:00, 20.55it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.67      0.75      0.71      1000
+  automobile       0.83      0.86      0.84      1000
+        bird       0.52      0.56      0.54      1000
+         cat       0.41      0.57      0.48      1000
+        deer       0.72      0.46      0.56      1000
+         dog       0.63      0.42      0.50      1000
+        frog       0.62      0.81      0.70      1000
+       horse       0.82      0.68      0.74      1000
+        ship       0.84      0.75      0.79      1000
+       truck       0.79      0.83      0.81      1000
+
+    accuracy                           0.67     10000
+   macro avg       0.69      0.67      0.67     10000
+weighted avg       0.69      0.67      0.67     10000
+
+Test set: Average loss: 0.9270, Accuracy: 6695/10000 (66.95%)
+
+Adjusting learning rate of group 0 to 1.0000e-01.
+Epoch 6
+Train: Loss=1.0036 Batch_id=390 Accuracy=62.82: 100%|██████████| 391/391 [00:18<00:00, 21.01it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.70      0.73      0.72      1000
+  automobile       0.81      0.89      0.85      1000
+        bird       0.50      0.65      0.56      1000
+         cat       0.49      0.43      0.46      1000
+        deer       0.61      0.71      0.65      1000
+         dog       0.54      0.65      0.59      1000
+        frog       0.75      0.73      0.74      1000
+       horse       0.90      0.59      0.71      1000
+        ship       0.86      0.78      0.82      1000
+       truck       0.91      0.70      0.79      1000
+
+    accuracy                           0.69     10000
+   macro avg       0.71      0.69      0.69     10000
+weighted avg       0.71      0.69      0.69     10000
+
+Test set: Average loss: 0.8830, Accuracy: 6870/10000 (68.70%)
+
+Adjusting learning rate of group 0 to 1.0000e-02.
+Epoch 7
+Train: Loss=0.8017 Batch_id=390 Accuracy=66.93: 100%|██████████| 391/391 [00:17<00:00, 22.09it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.75      0.73      0.74      1000
+  automobile       0.87      0.88      0.88      1000
+        bird       0.59      0.63      0.61      1000
+         cat       0.53      0.50      0.51      1000
+        deer       0.72      0.66      0.69      1000
+         dog       0.61      0.61      0.61      1000
+        frog       0.72      0.82      0.77      1000
+       horse       0.80      0.74      0.77      1000
+        ship       0.82      0.87      0.85      1000
+       truck       0.85      0.83      0.84      1000
+
+    accuracy                           0.73     10000
+   macro avg       0.73      0.73      0.73     10000
+weighted avg       0.73      0.73      0.73     10000
+
+Test set: Average loss: 0.7764, Accuracy: 7269/10000 (72.69%)
+
+Adjusting learning rate of group 0 to 1.0000e-02.
+Epoch 8
+Train: Loss=0.9006 Batch_id=390 Accuracy=67.62: 100%|██████████| 391/391 [00:20<00:00, 18.99it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.73      0.75      0.74      1000
+  automobile       0.86      0.89      0.87      1000
+        bird       0.60      0.63      0.61      1000
+         cat       0.54      0.51      0.53      1000
+        deer       0.70      0.67      0.69      1000
+         dog       0.63      0.60      0.62      1000
+        frog       0.72      0.82      0.77      1000
+       horse       0.80      0.75      0.78      1000
+        ship       0.86      0.84      0.85      1000
+       truck       0.85      0.82      0.84      1000
+
+    accuracy                           0.73     10000
+   macro avg       0.73      0.73      0.73     10000
+weighted avg       0.73      0.73      0.73     10000
+
+Test set: Average loss: 0.7641, Accuracy: 7295/10000 (72.95%)
+
+Adjusting learning rate of group 0 to 1.0000e-02.
+Epoch 9
+Train: Loss=0.8509 Batch_id=390 Accuracy=68.15: 100%|██████████| 391/391 [00:19<00:00, 19.85it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.73      0.76      0.75      1000
+  automobile       0.87      0.88      0.88      1000
+        bird       0.60      0.63      0.61      1000
+         cat       0.53      0.51      0.52      1000
+        deer       0.69      0.67      0.68      1000
+         dog       0.62      0.62      0.62      1000
+        frog       0.70      0.84      0.76      1000
+       horse       0.86      0.72      0.78      1000
+        ship       0.85      0.86      0.85      1000
+       truck       0.88      0.82      0.85      1000
+
+    accuracy                           0.73     10000
+   macro avg       0.73      0.73      0.73     10000
+weighted avg       0.73      0.73      0.73     10000
+
+Test set: Average loss: 0.7645, Accuracy: 7297/10000 (72.97%)
+
+Adjusting learning rate of group 0 to 1.0000e-02.
+Epoch 10
+Train: Loss=0.9719 Batch_id=390 Accuracy=68.45: 100%|██████████| 391/391 [00:18<00:00, 21.71it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.74      0.76      0.75      1000
+  automobile       0.88      0.89      0.88      1000
+        bird       0.60      0.63      0.61      1000
+         cat       0.52      0.54      0.53      1000
+        deer       0.71      0.67      0.69      1000
+         dog       0.64      0.60      0.62      1000
+        frog       0.71      0.83      0.76      1000
+       horse       0.86      0.72      0.78      1000
+        ship       0.85      0.86      0.86      1000
+       truck       0.87      0.82      0.85      1000
+
+    accuracy                           0.73     10000
+   macro avg       0.74      0.73      0.73     10000
+weighted avg       0.74      0.73      0.73     10000
+
+Test set: Average loss: 0.7571, Accuracy: 7333/10000 (73.33%)
+
+Adjusting learning rate of group 0 to 1.0000e-02.
+Epoch 11
+Train: Loss=1.0145 Batch_id=390 Accuracy=68.53: 100%|██████████| 391/391 [00:18<00:00, 21.08it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.77      0.73      0.75      1000
+  automobile       0.86      0.89      0.87      1000
+        bird       0.58      0.66      0.61      1000
+         cat       0.53      0.51      0.52      1000
+        deer       0.74      0.63      0.68      1000
+         dog       0.62      0.63      0.63      1000
+        frog       0.71      0.83      0.77      1000
+       horse       0.85      0.74      0.79      1000
+        ship       0.83      0.88      0.85      1000
+       truck       0.87      0.84      0.85      1000
+
+    accuracy                           0.73     10000
+   macro avg       0.74      0.73      0.73     10000
+weighted avg       0.74      0.73      0.73     10000
+
+Test set: Average loss: 0.7542, Accuracy: 7327/10000 (73.27%)
+
+Adjusting learning rate of group 0 to 1.0000e-02.
+Epoch 12
+Train: Loss=0.9141 Batch_id=390 Accuracy=68.97: 100%|██████████| 391/391 [00:18<00:00, 20.77it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.75      0.76      0.75      1000
+  automobile       0.87      0.89      0.88      1000
+        bird       0.60      0.65      0.62      1000
+         cat       0.53      0.53      0.53      1000
+        deer       0.73      0.69      0.71      1000
+         dog       0.64      0.61      0.62      1000
+        frog       0.76      0.81      0.78      1000
+       horse       0.82      0.76      0.79      1000
+        ship       0.84      0.85      0.85      1000
+       truck       0.86      0.84      0.85      1000
+
+    accuracy                           0.74     10000
+   macro avg       0.74      0.74      0.74     10000
+weighted avg       0.74      0.74      0.74     10000
+
+Test set: Average loss: 0.7374, Accuracy: 7387/10000 (73.87%)
+
+Adjusting learning rate of group 0 to 1.0000e-03.
+Epoch 13
+Train: Loss=0.7414 Batch_id=390 Accuracy=69.43: 100%|██████████| 391/391 [00:17<00:00, 21.78it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.76      0.75      0.76      1000
+  automobile       0.88      0.88      0.88      1000
+        bird       0.60      0.64      0.62      1000
+         cat       0.53      0.55      0.54      1000
+        deer       0.72      0.68      0.70      1000
+         dog       0.65      0.61      0.63      1000
+        frog       0.73      0.83      0.78      1000
+       horse       0.84      0.75      0.79      1000
+        ship       0.84      0.87      0.86      1000
+       truck       0.87      0.83      0.85      1000
+
+    accuracy                           0.74     10000
+   macro avg       0.74      0.74      0.74     10000
+weighted avg       0.74      0.74      0.74     10000
+
+Test set: Average loss: 0.7340, Accuracy: 7394/10000 (73.94%)
+
+Adjusting learning rate of group 0 to 1.0000e-03.
+Epoch 14
+Train: Loss=0.9146 Batch_id=390 Accuracy=69.56: 100%|██████████| 391/391 [00:18<00:00, 20.68it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.76      0.76      0.76      1000
+  automobile       0.87      0.89      0.88      1000
+        bird       0.61      0.64      0.63      1000
+         cat       0.54      0.53      0.54      1000
+        deer       0.71      0.70      0.71      1000
+         dog       0.66      0.61      0.63      1000
+        frog       0.74      0.83      0.78      1000
+       horse       0.82      0.76      0.79      1000
+        ship       0.85      0.86      0.86      1000
+       truck       0.87      0.84      0.85      1000
+
+    accuracy                           0.74     10000
+   macro avg       0.74      0.74      0.74     10000
+weighted avg       0.74      0.74      0.74     10000
+
+Test set: Average loss: 0.7282, Accuracy: 7422/10000 (74.22%)
+
+Adjusting learning rate of group 0 to 1.0000e-03.
+Epoch 15
+Train: Loss=0.7928 Batch_id=390 Accuracy=69.60: 100%|██████████| 391/391 [00:19<00:00, 20.56it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.76      0.75      0.76      1000
+  automobile       0.87      0.89      0.88      1000
+        bird       0.60      0.65      0.62      1000
+         cat       0.52      0.54      0.53      1000
+        deer       0.73      0.67      0.70      1000
+         dog       0.64      0.62      0.63      1000
+        frog       0.74      0.82      0.78      1000
+       horse       0.84      0.75      0.79      1000
+        ship       0.85      0.87      0.86      1000
+       truck       0.87      0.83      0.85      1000
+
+    accuracy                           0.74     10000
+   macro avg       0.74      0.74      0.74     10000
+weighted avg       0.74      0.74      0.74     10000
+
+Test set: Average loss: 0.7298, Accuracy: 7398/10000 (73.98%)
+
+Adjusting learning rate of group 0 to 1.0000e-03.
+Epoch 16
+Train: Loss=0.8774 Batch_id=390 Accuracy=69.53: 100%|██████████| 391/391 [00:17<00:00, 21.93it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.76      0.76      0.76      1000
+  automobile       0.86      0.89      0.88      1000
+        bird       0.62      0.64      0.63      1000
+         cat       0.53      0.54      0.53      1000
+        deer       0.72      0.70      0.71      1000
+         dog       0.65      0.61      0.63      1000
+        frog       0.73      0.83      0.78      1000
+       horse       0.85      0.75      0.79      1000
+        ship       0.84      0.87      0.86      1000
+       truck       0.86      0.83      0.85      1000
+
+    accuracy                           0.74     10000
+   macro avg       0.74      0.74      0.74     10000
+weighted avg       0.74      0.74      0.74     10000
+
+Test set: Average loss: 0.7297, Accuracy: 7410/10000 (74.10%)
+
+Adjusting learning rate of group 0 to 1.0000e-03.
+Epoch 17
+Train: Loss=0.7819 Batch_id=390 Accuracy=69.92: 100%|██████████| 391/391 [00:18<00:00, 21.43it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.77      0.75      0.76      1000
+  automobile       0.88      0.88      0.88      1000
+        bird       0.61      0.63      0.62      1000
+         cat       0.52      0.55      0.54      1000
+        deer       0.73      0.67      0.70      1000
+         dog       0.63      0.62      0.63      1000
+        frog       0.72      0.83      0.78      1000
+       horse       0.85      0.75      0.80      1000
+        ship       0.85      0.87      0.86      1000
+       truck       0.86      0.84      0.85      1000
+
+    accuracy                           0.74     10000
+   macro avg       0.74      0.74      0.74     10000
+weighted avg       0.74      0.74      0.74     10000
+
+Test set: Average loss: 0.7308, Accuracy: 7396/10000 (73.96%)
+
+Adjusting learning rate of group 0 to 1.0000e-03.
+Epoch 18
+Train: Loss=0.9969 Batch_id=390 Accuracy=69.52: 100%|██████████| 391/391 [00:17<00:00, 22.22it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.77      0.74      0.76      1000
+  automobile       0.88      0.88      0.88      1000
+        bird       0.61      0.66      0.63      1000
+         cat       0.53      0.54      0.53      1000
+        deer       0.73      0.69      0.71      1000
+         dog       0.65      0.61      0.63      1000
+        frog       0.73      0.83      0.78      1000
+       horse       0.85      0.74      0.79      1000
+        ship       0.84      0.87      0.86      1000
+       truck       0.86      0.84      0.85      1000
+
+    accuracy                           0.74     10000
+   macro avg       0.74      0.74      0.74     10000
+weighted avg       0.74      0.74      0.74     10000
+
+Test set: Average loss: 0.7321, Accuracy: 7410/10000 (74.10%)
+
+Adjusting learning rate of group 0 to 1.0000e-04.
+Epoch 19
+Train: Loss=0.8090 Batch_id=390 Accuracy=69.59: 100%|██████████| 391/391 [00:17<00:00, 22.45it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.76      0.75      0.76      1000
+  automobile       0.87      0.89      0.88      1000
+        bird       0.60      0.65      0.62      1000
+         cat       0.53      0.53      0.53      1000
+        deer       0.72      0.68      0.70      1000
+         dog       0.65      0.60      0.63      1000
+        frog       0.72      0.83      0.77      1000
+       horse       0.84      0.75      0.79      1000
+        ship       0.84      0.88      0.86      1000
+       truck       0.87      0.84      0.85      1000
+
+    accuracy                           0.74     10000
+   macro avg       0.74      0.74      0.74     10000
+weighted avg       0.74      0.74      0.74     10000
+
+Test set: Average loss: 0.7308, Accuracy: 7391/10000 (73.91%)
+
+Adjusting learning rate of group 0 to 1.0000e-04.
+Epoch 20
+Train: Loss=1.1345 Batch_id=390 Accuracy=70.02: 100%|██████████| 391/391 [00:18<00:00, 21.38it/s]
+              precision    recall  f1-score   support
+
+    airplane       0.75      0.76      0.75      1000
+  automobile       0.87      0.89      0.88      1000
+        bird       0.60      0.66      0.63      1000
+         cat       0.55      0.51      0.53      1000
+        deer       0.72      0.69      0.71      1000
+         dog       0.66      0.60      0.63      1000
+        frog       0.73      0.83      0.78      1000
+       horse       0.82      0.76      0.79      1000
+        ship       0.84      0.87      0.86      1000
+       truck       0.86      0.84      0.85      1000
+
+    accuracy                           0.74     10000
+   macro avg       0.74      0.74      0.74     10000
+weighted avg       0.74      0.74      0.74     10000
+
+Test set: Average loss: 0.7296, Accuracy: 7408/10000 (74.08%)
+
+Adjusting learning rate of group 0 to 1.0000e-04.
+```
+
+
 ### Conclusion
-MNIST dataset was sucessfully trained with the model architecture discussed upto 99.4% accuracy
+CIFAR10 dataset was sucessfully trained with the model architecture discussed upto 70% accuracy
