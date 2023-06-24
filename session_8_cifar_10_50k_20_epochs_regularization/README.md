@@ -15,7 +15,7 @@ The code structure has no modifications from the last sessions and further detai
 - `datasets.py` - Wrapping pytorch dataset - RIght now only handles CIFAR10 dataset
 
 ### Key code snippets
-> [Model Architecture](model.py)
+> [Model Architecture](model_mnist_50k_params_CIFAR10_bn.py)
 ```
 class Net(nn.Module):
 
