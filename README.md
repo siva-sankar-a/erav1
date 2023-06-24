@@ -11,3 +11,5 @@ Please find the links to individaul sessions here
     - Getting MNIST dataset to 99.4% accuracy with a parameter limit of 20k parameters in less than 20 epochs
 - ## [Session 7](./session_7_8k_15_epochs/README.md) 
     - Getting MNIST dataset to 99.4% accuracy with a parameter limit of 8k parameters in less than 15 epochs
+- ## [Session 8](./session_8_cifar_10_50k_20_epochs_regularization/README.md) 
+    - Getting CIFAR10 dataset to 70% accuracy with a parameter limit of 50k parameters in less than 20 epochs
