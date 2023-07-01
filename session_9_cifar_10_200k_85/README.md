@@ -15,7 +15,7 @@ The code structure has no modifications from the last sessions and further detai
 - `datasets.py` - Modified to accomodate Albumentations
 
 ### Key code snippets
-> [Model Architecture](model_mnist_50k_params_CIFAR10_bn.py)
+> [Model Architecture](model_200k_params_CIFAR10_85_acc.py)
 ```
 class Net(nn.Module):
 
