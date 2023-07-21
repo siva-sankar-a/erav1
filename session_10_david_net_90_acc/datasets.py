@@ -53,7 +53,7 @@ def get_test_dataloader(test_data, **kwargs):
 
 class CIFAR10_Dataset(datasets.CIFAR10):
     '''
-    This class takes care of Albumentations Libart in __getitem__
+    This class takes care of Albumentations Library in __getitem__
     '''
     def __init__(self, root="./data/", train=True, download=True, transform=None):
         super().__init__(root=root, train=train, download=download, transform=transform)
@@ -66,3 +66,26 @@ class CIFAR10_Dataset(datasets.CIFAR10):
             image = transformed["image"]
 
         return image, label
+    
+
+def get_CIFAR10_albumentations_train_dataset(train_transforms):
+    '''
+    This function loads the train dataset
+
+    Usage:
+    >>> train_transforms = get_train_transforms()
+    >>> train_dataset = get_train_dataset(train_transforms)
+    '''
+    train_data = CIFAR10_Dataset('../data', train=True, download=True, transform=train_transforms)
+    return train_data
+
+def get_CIFAR10_albumentations_test_dataset(test_transforms):
+    '''
+    This function loads the test dataset
+
+    Usage:
+    >>> test_transforms = get_test_transforms()
+    >>> test_dataset = get_test_dataset(test_transforms)
+    '''
+    test_data = CIFAR10_Dataset('../data', train=False, download=True, transform=test_transforms)
+    return test_data

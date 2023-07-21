@@ -60,3 +60,31 @@ def get_CIFAR10_test_transforms():
     )
 
     return test_transforms
+
+
+def get_CIFAR10_DavidNet_train_transforms():
+    train_transforms = A.Compose(
+        [
+            A.CropAndPad(px=4, pad_mode=4, p=0.5),
+            A.HorizontalFlip(p=0.5),
+            A.CoarseDropout(max_holes=8, max_height=8, max_width=8, min_holes=8, min_height=8, min_width=8,
+                            fill_value=(0.4913997551666284, 0.48215855929893703, 0.446530913373161),
+                            mask_fill_value=None, always_apply=False, p=0.5),
+            A.Normalize(mean=(0.4913997551666284, 0.48215855929893703, 0.446530913373161),
+                        std=(0.24703225141799082, 0.24348516474564, 0.26158783926049628)),
+            ToTensorV2(),
+        ]
+    )
+
+    return train_transforms
+
+def get_CIFAR10_DavidNet_test_transforms():
+    test_transforms = A.Compose(
+        [
+            A.Normalize(mean=(0.4913997551666284, 0.48215855929893703, 0.446530913373161),
+                        std=(0.24703225141799082, 0.24348516474564, 0.26158783926049628)),
+            ToTensorV2(),
+        ]
+    )
+
+    return test_transforms
