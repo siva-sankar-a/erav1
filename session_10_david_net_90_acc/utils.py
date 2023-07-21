@@ -160,7 +160,7 @@ def train(model, device, train_loader, optimizer, metrics, scheduler=None):
     correct = 0
     processed = 0
 
-    cross_entropy_loss = torch.nn.CrossEntropyLoss(reduction='sum')
+    cross_entropy_loss = torch.nn.CrossEntropyLoss(reduction='mean')
 
     for batch_idx, (data, target) in enumerate(pbar):
         data, target = data.to(device), target.to(device)
