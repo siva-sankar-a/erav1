@@ -15,3 +15,5 @@ Please find the links to individaul sessions here
     - Getting CIFAR10 dataset to 70% accuracy with a parameter limit of 50k parameters in less than 20 epochs
 - ## [Session 9](./session_9_cifar_10_200k_85/README.md) 
     - Getting CIFAR10 dataset to 85% accuracy with a parameter limit of 200k parameters in less than 35 epochs
+- ## [Session 10](./session_10_david_net_90_acc/README.md) 
+    - Getting CIFAR10 dataset to 90% accuracy with DavidNet attempt
