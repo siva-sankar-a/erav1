@@ -13,8 +13,8 @@ def run():
     batch_size = 512
     kwargs = {'batch_size': batch_size, 'shuffle': True, 'num_workers': 2, 'pin_memory': True}
 
-    train_transforms = tf.get_CIFAR10_DavidNet_train_transforms()
-    test_transforms = tf.get_CIFAR10_DavidNet_test_transforms()
+    train_transforms = tf.get_CIFAR10_train_transforms()
+    test_transforms = tf.get_CIFAR10_test_transforms()
 
     train_dataset = ds.get_CIFAR10_albumentations_train_dataset(train_transforms)
     test_dataset = ds.get_CIFAR10_albumentations_test_dataset(test_transforms)
@@ -28,9 +28,9 @@ def run():
 
     U.show_summary(model, -1, device.type)
 
-    num_epochs = 35
+    num_epochs = 20
     momentum = 0.9
-    max_lr = 5.34E-04
+    max_lr = 1E-02
     regularization = None
     epochs_up = 7
     base_momentum = 0.85
@@ -75,7 +75,7 @@ def run():
         U.train(model, device, train_dataloader, optimizer, metrics, scheduler)
         U.test(model, device, test_dataloader, metrics, labels)
         # scheduler.step()
-        break
+        # break
 
     U.display_results(metrics)
 
