@@ -5,6 +5,14 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from sklearn.metrics import classification_report
 
+import numpy as np
+
+from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+from pytorch_grad_cam.utils.image import show_cam_on_image
+
+import matplotlib.pyplot as plt
+
 def get_device():
     '''
     This function checks if the model can be trained on `CUDA` or on `CPU`
@@ -274,3 +282,45 @@ def display_results(metrics):
     axs[1, 1].set_title("Test Accuracy")
 
     plt.show()
+
+def gradcam(df, model, target_layers, labels):
+    _misclassified_batch = np.array(df['data'].tolist())
+
+    # target_layers = [model.layer3[-1]]
+    input_tensor = torch.from_numpy(_misclassified_batch)
+
+    # Construct the CAM object once, and then re-use it on many images:
+    cam = GradCAM(model=model, target_layers=target_layers, use_cuda=True)
+
+    targets = [ClassifierOutputTarget(t) for t in df['actual']]
+
+    # You can also pass aug_smooth=True and eigen_smooth=True, to apply smoothing.
+    grayscale_cam = cam(input_tensor=input_tensor, targets=targets)
+
+    mean_R, mean_G, mean_B = (0.4913997551666284, 0.48215855929893703, 0.446530913373161)
+    std_R, std_G, std_B = (0.24703225141799082, 0.24348516474564, 0.26158783926049628)
+
+    fig = plt.figure(figsize=(24, 10))
+
+    for i, row in df.reset_index(drop=True).iterrows():
+        ax = plt.subplot(4, 10, (2 * i)+2)
+        plt.axis('off')
+
+        cam_result = grayscale_cam[i, :]
+
+        _misclassified_batch[i, 0, :, :] = (_misclassified_batch[i, 0, :, :] * std_R) + mean_R
+        _misclassified_batch[i, 1, :, :] = (_misclassified_batch[i, 1, :, :] * std_G) + mean_G
+        _misclassified_batch[i, 2, :, :] = (_misclassified_batch[i, 2, :, :] * std_B) + mean_B
+
+        visualization = show_cam_on_image(_misclassified_batch[i].transpose((1, 2, 0)), cam_result, use_rgb=True, image_weight=0.6)
+
+        plt.imshow(visualization, cmap='jet')
+
+        ax = plt.subplot(4, 10, (2 * i)+1)
+        plt.axis('off')
+        plt.imshow(_misclassified_batch[i].transpose((1, 2, 0)), cmap='jet')
+
+        ax.set_title(f"actual: {labels[row['actual']]} \n predicted: {labels[row['pred']]}")
+
+    plt.show()
+    plt.savefig('gradcam.jpg')
