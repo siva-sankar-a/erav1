@@ -17,3 +17,5 @@ Please find the links to individaul sessions here
     - Getting CIFAR10 dataset to 85% accuracy with a parameter limit of 200k parameters in less than 35 epochs
 - ## [Session 10](./session_10_david_net_90_acc/README.md) 
     - Getting CIFAR10 dataset to 90% accuracy with DavidNet attempt
+- ## [Session 11](./session_11_resnet_gradcam/README.md) 
+    - Gradcam on Resnet18 with CIFAR10 dataset
