@@ -7,6 +7,7 @@ src/app/static
 src/app/static_files
 /static_volume
 db/
+tb_logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
