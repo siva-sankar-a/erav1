@@ -86,6 +86,7 @@ class NetPL(pl.LightningModule):
         self.log('val_acc_step', self.accuracy, prog_bar=True, logger=True)
         self.log('val_loss', loss, prog_bar=True, logger=True)
 
+
 class MisclassifiedCollector(Callback):
 
     def __init__(self):
