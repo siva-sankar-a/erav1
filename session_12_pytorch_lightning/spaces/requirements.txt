@@ -1,0 +1,6 @@
+torch
+torchvision
+grad-cam
+torchmetrics
+pytorch_lightning
+gradio
