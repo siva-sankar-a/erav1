@@ -19,3 +19,5 @@ Please find the links to individaul sessions here
     - Getting CIFAR10 dataset to 90% accuracy with DavidNet attempt
 - ## [Session 11](./session_11_resnet_gradcam/README.md) 
     - Gradcam on Resnet18 with CIFAR10 dataset
+- ## [Session 12](./session_12_pytorch_lightning/README.md) 
+    - Getting CIFAR10 dataset to 90% accuracy with DavidNet - Convert to Pytorch Lightning and Spaces
