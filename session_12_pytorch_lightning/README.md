@@ -5,6 +5,7 @@
 - Implement Gradcam on Resnet with CIFAR10 dataset
 - Modularize the model code
 - Collect results and prepare documentation for results.
+- Depoly with pytorch lightning and [huggingface spaces](https://huggingface.co/spaces/siva-sankar-a/erav1-session12-cifar10-davidnet)
 
 ### Navigating the source code
 The code structure has no modifications from the last sessions and further details of the structure is available [here](../session_5_split_code_to_files/README.md)
@@ -232,62 +233,42 @@ class NetPL(pl.LightningModule):
 ================================================================
             Conv2d-1          [512, 64, 32, 32]           1,728
        BatchNorm2d-2          [512, 64, 32, 32]             128
-            Conv2d-3          [512, 64, 32, 32]          36,864
-       BatchNorm2d-4          [512, 64, 32, 32]             128
-            Conv2d-5          [512, 64, 32, 32]          36,864
-       BatchNorm2d-6          [512, 64, 32, 32]             128
-        BasicBlock-7          [512, 64, 32, 32]               0
-            Conv2d-8          [512, 64, 32, 32]          36,864
-       BatchNorm2d-9          [512, 64, 32, 32]             128
-           Conv2d-10          [512, 64, 32, 32]          36,864
-      BatchNorm2d-11          [512, 64, 32, 32]             128
-       BasicBlock-12          [512, 64, 32, 32]               0
-           Conv2d-13         [512, 128, 16, 16]          73,728
-      BatchNorm2d-14         [512, 128, 16, 16]             256
-           Conv2d-15         [512, 128, 16, 16]         147,456
-      BatchNorm2d-16         [512, 128, 16, 16]             256
-           Conv2d-17         [512, 128, 16, 16]           8,192
-      BatchNorm2d-18         [512, 128, 16, 16]             256
-       BasicBlock-19         [512, 128, 16, 16]               0
-           Conv2d-20         [512, 128, 16, 16]         147,456
-      BatchNorm2d-21         [512, 128, 16, 16]             256
-           Conv2d-22         [512, 128, 16, 16]         147,456
-      BatchNorm2d-23         [512, 128, 16, 16]             256
-       BasicBlock-24         [512, 128, 16, 16]               0
-           Conv2d-25           [512, 256, 8, 8]         294,912
-      BatchNorm2d-26           [512, 256, 8, 8]             512
-           Conv2d-27           [512, 256, 8, 8]         589,824
-      BatchNorm2d-28           [512, 256, 8, 8]             512
-           Conv2d-29           [512, 256, 8, 8]          32,768
-      BatchNorm2d-30           [512, 256, 8, 8]             512
-       BasicBlock-31           [512, 256, 8, 8]               0
-           Conv2d-32           [512, 256, 8, 8]         589,824
-      BatchNorm2d-33           [512, 256, 8, 8]             512
-           Conv2d-34           [512, 256, 8, 8]         589,824
-      BatchNorm2d-35           [512, 256, 8, 8]             512
-       BasicBlock-36           [512, 256, 8, 8]               0
-           Conv2d-37           [512, 512, 4, 4]       1,179,648
-      BatchNorm2d-38           [512, 512, 4, 4]           1,024
-           Conv2d-39           [512, 512, 4, 4]       2,359,296
-      BatchNorm2d-40           [512, 512, 4, 4]           1,024
-           Conv2d-41           [512, 512, 4, 4]         131,072
-      BatchNorm2d-42           [512, 512, 4, 4]           1,024
-       BasicBlock-43           [512, 512, 4, 4]               0
-           Conv2d-44           [512, 512, 4, 4]       2,359,296
-      BatchNorm2d-45           [512, 512, 4, 4]           1,024
-           Conv2d-46           [512, 512, 4, 4]       2,359,296
-      BatchNorm2d-47           [512, 512, 4, 4]           1,024
-       BasicBlock-48           [512, 512, 4, 4]               0
-           Linear-49                  [512, 10]           5,130
+              ReLU-3          [512, 64, 32, 32]               0
+            Conv2d-4         [512, 128, 32, 32]          73,728
+       BatchNorm2d-5         [512, 128, 32, 32]             256
+              ReLU-6         [512, 128, 32, 32]               0
+         MaxPool2d-7         [512, 128, 16, 16]               0
+            Conv2d-8         [512, 128, 16, 16]         147,456
+       BatchNorm2d-9         [512, 128, 16, 16]             256
+             ReLU-10         [512, 128, 16, 16]               0
+           Conv2d-11         [512, 128, 16, 16]         147,456
+      BatchNorm2d-12         [512, 128, 16, 16]             256
+             ReLU-13         [512, 128, 16, 16]               0
+           Conv2d-14         [512, 256, 16, 16]         294,912
+      BatchNorm2d-15         [512, 256, 16, 16]             512
+             ReLU-16         [512, 256, 16, 16]               0
+        MaxPool2d-17           [512, 256, 8, 8]               0
+           Conv2d-18           [512, 512, 8, 8]       1,179,648
+      BatchNorm2d-19           [512, 512, 8, 8]           1,024
+             ReLU-20           [512, 512, 8, 8]               0
+        MaxPool2d-21           [512, 512, 4, 4]               0
+           Conv2d-22           [512, 512, 4, 4]       2,359,296
+      BatchNorm2d-23           [512, 512, 4, 4]           1,024
+             ReLU-24           [512, 512, 4, 4]               0
+           Conv2d-25           [512, 512, 4, 4]       2,359,296
+      BatchNorm2d-26           [512, 512, 4, 4]           1,024
+             ReLU-27           [512, 512, 4, 4]               0
+        MaxPool2d-28           [512, 512, 1, 1]               0
+           Linear-29                  [512, 10]           5,130
 ================================================================
-Total params: 11,173,962
-Trainable params: 11,173,962
+Total params: 6,573,130
+Trainable params: 6,573,130
 Non-trainable params: 0
 ----------------------------------------------------------------
 Input size (MB): 6.00
-Forward/backward pass size (MB): 5760.04
-Params size (MB): 42.63
-Estimated Total Size (MB): 5808.66
+Forward/backward pass size (MB): 4642.04
+Params size (MB): 25.07
+Estimated Total Size (MB): 4673.11
 ----------------------------------------------------------------
 ```
 
